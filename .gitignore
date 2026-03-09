@@ -1,0 +1,27 @@
+# User config files
+.vscode/settings.json
+
+# Ignore build artifacts
+# CMake build directories
+/generated/build/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/Makefile
+
+# Ninja build files
+/build.ninja
+/.ninja_deps
+/.ninja_log
+
+# Compiled binaries and libraries
+/generated/
+/bin/
+/lib/
+/*.a
+/*.so
+/*.dll
+/*.exe
+
+# Logs and temporary files
+/*.log
