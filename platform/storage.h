@@ -48,7 +48,7 @@ aemlib_storage_write(const aemlib_storage_t *s,
                      size_t len)
 {
     if (!s || !s->write_record) {
-        return AEMLIB_STATUS(AEMLIB_LAYER_SYSTEM, AEMLIB_CODE_INVALID_ARG);
+        return AEMLIB_STATUS(AEMLIB_LAYER_IO, AEMLIB_CODE_INVALID_ARG);
     }
     return s->write_record(s->ctx, data, len);
 }
@@ -60,7 +60,7 @@ aemlib_storage_read(const aemlib_storage_t *s,
                     size_t *out_len)
 {
     if (!s || !s->read_record) {
-        return AEMLIB_STATUS(AEMLIB_LAYER_SYSTEM, AEMLIB_CODE_INVALID_ARG);
+        return AEMLIB_STATUS(AEMLIB_LAYER_IO, AEMLIB_CODE_INVALID_ARG);
     }
     return s->read_record(s->ctx, buf, buf_len, out_len);
 }
@@ -69,7 +69,7 @@ static inline aemlib_status_t
 aemlib_storage_delete(const aemlib_storage_t *s)
 {
     if (!s || !s->delete_record) {
-        return AEMLIB_STATUS(AEMLIB_LAYER_SYSTEM, AEMLIB_CODE_INVALID_ARG);
+        return AEMLIB_STATUS(AEMLIB_LAYER_IO, AEMLIB_CODE_INVALID_ARG);
     }
     return s->delete_record(s->ctx);
 }
