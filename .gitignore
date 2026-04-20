@@ -1,13 +1,15 @@
 # User config files
-.vscode/settings.json
+.vscode/
 
 # Ignore build artifacts
 # CMake build directories
-/generated/build/
-/CMakeFiles/
-/CMakeCache.txt
-/cmake_install.cmake
-/Makefile
+build/
+generated/build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
 
 # Ninja build files
 /build.ninja
@@ -22,6 +24,9 @@
 /*.so
 /*.dll
 /*.exe
+
+# Test executables
+tests/aemlib_tests
 
 # Logs and temporary files
 /*.log
