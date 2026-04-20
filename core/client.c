@@ -6,6 +6,8 @@
 #include "core.h"
 #include "proto.h"
 
+#include <string.h>
+
 /*
  * CLIENT LAYER OVERVIEW
  * ---------------------
@@ -33,7 +35,7 @@ static aemlib_status_t client_send(aemlib_client_t *client,
                                    size_t len)
 {
     size_t written = 0;
-    aemlib_status_t status = aemlib_transport_send(&client->transport, data, len, &written);
+    aemlib_status_t status = aemlib_transport_write(&client->transport, data, len, &written);
 
     if (status == AEMLIB_STATUS_OK && written == len) {
         return AEMLIB_STATUS_OK;
@@ -49,19 +51,19 @@ static aemlib_status_t client_send(aemlib_client_t *client,
 static aemlib_status_t client_read(aemlib_client_t *client)
 {
     size_t read = 0;
-    aemlib_status_t status = aemlib_transport_recv(&client->transport,
+    aemlib_status_t status = aemlib_transport_read(&client->transport,
                                                   client->rx_buffer,
                                                   client->rx_buffer_size,
                                                   &read);
 
     if (status == AEMLIB_STATUS_OK && read > 0) {
-        size_t consumed = 0;
-        aemlib_status_t decode_status = aemlib_proto_decode(client->rx_buffer, read, &consumed, client);
-
-        if (decode_status != AEMLIB_STATUS_OK) {
-            AEMLIB_LOG_ERROR(AEMLIB_LOG_MODULE_CLIENT, "decode error");
-            return decode_status;
-        }
+        // TODO: decode MQTT packets
+        // size_t consumed = 0;
+        // aemlib_status_t decode_status = aemlib_proto_decode(client->rx_buffer, read, &consumed, client);
+        // if (decode_status != AEMLIB_STATUS_OK) {
+        //     AEMLIB_LOG_ERROR(AEMLIB_LOG_MODULE_CLIENT, "decode error");
+        //     return decode_status;
+        // }
     }
 
     if (AEMLIB_STATUS_CODE(status) == AEMLIB_CODE_WOULD_BLOCK) {

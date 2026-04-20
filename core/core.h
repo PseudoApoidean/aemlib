@@ -2,9 +2,9 @@
 #define AEMLIB_CORE_H
 
 #include "aemlib/status.h"
-#include "platform/transport.h"
-#include "platform/time.h"
-#include "platform/storage.h"
+#include "../platform/transport.h"
+#include "../platform/time.h"
+#include "../platform/storage.h"
 
 #include <stddef.h>
 #include <stdint.h>
