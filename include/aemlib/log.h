@@ -30,6 +30,7 @@ typedef void (*aemlib_log_fn)(
 #endif
 
 /* Module identifiers */
+#define AEMLIB_LOG_MODULE_CLIENT    "client"
 #define AEMLIB_LOG_MODULE_CORE      "core"
 #define AEMLIB_LOG_MODULE_PROTO     "proto"
 #define AEMLIB_LOG_MODULE_TRANSPORT "transport"
