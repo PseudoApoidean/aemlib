@@ -1,44 +1,29 @@
 #ifndef AEMLIB_STORAGE_H
 #define AEMLIB_STORAGE_H
 
-#include "include/aemlib/status.h"
-#include <stddef.h>
-#include <stdint.h>
+#include "aemlib/aemlib.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// DEFINITIONS ------------------------
-
-/*
- * Storage interface:
- * A simple record-store abstraction for offline queueing.
- *
- * The client writes one record at a time, reads it back later,
- * and deletes it when processed.
- */
-typedef struct {
-    aemlib_status_t (*write_record)(void *ctx,
-                                    const uint8_t *data,
-                                    size_t len);
-
-    aemlib_status_t (*read_record)(void *ctx,
-                                   uint8_t *buf,
-                                   size_t buf_len,
-                                   size_t *out_len);
-
-    aemlib_status_t (*delete_record)(void *ctx);
-
-    void *ctx;
-} aemlib_storage_t;
-
 // DECLARATIONS -----------------------
 
-/* Validate the storage interface (optional helper) */
-aemlib_status_t aemlib_storage_validate(const aemlib_storage_t *storage);
-
-// IMPLEMENTATION ---------------------
+/* Validate the storage interface */
+static inline aemlib_status_t aemlib_storage_validate(const aemlib_storage_t *storage)
+{
+    if (!storage) {
+        return AEMLIB_STATUS(AEMLIB_LAYER_IO, AEMLIB_CODE_INVALID_ARG);
+    }
+    /* Storage is optional, so only check if provided */
+    if (storage->write_record || storage->read_record || storage->delete_record) {
+        /* If any function is provided, all should be */
+        if (!storage->write_record || !storage->read_record || !storage->delete_record) {
+            return AEMLIB_STATUS(AEMLIB_LAYER_IO, AEMLIB_CODE_INVALID_ARG);
+        }
+    }
+    return AEMLIB_STATUS_OK;
+}
 
 /* Inline helpers for convenience */
 

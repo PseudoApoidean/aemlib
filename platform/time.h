@@ -1,26 +1,24 @@
 #ifndef AEMLIB_TIME_H
 #define AEMLIB_TIME_H
 
-#include "aemlib/status.h"
+#include "aemlib/aemlib.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// DEFINITIONS ------------------------
-
-/* Time interface: user provides a millisecond clock */
-typedef struct {
-    uint64_t (*now_ms)(void *ctx);
-    void *ctx;
-} aemlib_time_t;
-
 // DECLARATIONS -----------------------
 
-/* Validate the time interface (optional helper) */
-aemlib_status_t aemlib_time_validate(const aemlib_time_t *time);
-
 // IMPLEMENTATION ---------------------
+
+/* Validate the time interface */
+static inline aemlib_status_t aemlib_time_validate(const aemlib_time_t *time)
+{
+    if (!time || !time->now_ms) {
+        return AEMLIB_STATUS(AEMLIB_LAYER_SYSTEM, AEMLIB_CODE_INVALID_ARG);
+    }
+    return AEMLIB_STATUS_OK;
+}
 
 /* Inline helper: safe call to now_ms() */
 static inline uint64_t aemlib_time_now(const aemlib_time_t *time) {
