@@ -31,7 +31,7 @@ static inline aemlib_status_t append_byte(uint8_t *buf,
                                           uint8_t value)
 {
     aemlib_status_t status = ensure_space(1, *offset, buf_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
     buf[(*offset)++] = value;
     return AEMLIB_STATUS_OK;
 }
@@ -250,7 +250,7 @@ aemlib_status_t aemlib_proto_encode_publish(uint8_t *buf,
     // Fixed header (flags = QoS0)
     aemlib_status_t status = append_byte(buf, &offset, buf_len,
                                           (AEMLIB_MQTT_PKT_PUBLISH << AEMLIB_MQTT_PACKET_TYPE_SHIFT) | AEMLIB_MQTT_PUBLISH_FLAGS_QOS0);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     // Reserve RL
     size_t rl_pos = offset;
@@ -295,12 +295,12 @@ aemlib_status_t aemlib_proto_encode_subscribe(uint8_t *buf,
     // Fixed header
     aemlib_status_t status = append_byte(buf, &offset, buf_len,
                                           (AEMLIB_MQTT_PKT_SUBSCRIBE << AEMLIB_MQTT_PACKET_TYPE_SHIFT) | AEMLIB_MQTT_SUBSCRIBE_FLAGS);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     // Reserve RL
     size_t rl_pos = offset;
     status = reserve_space(&offset, AEMLIB_MQTT_REMAINING_LENGTH_MAX_BYTES, buf_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     // Packet ID
     status = append_uint16_be(buf, &offset, buf_len, packet_id);
