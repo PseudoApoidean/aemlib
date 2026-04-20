@@ -79,6 +79,14 @@ typedef uint32_t aemlib_status_t;
 /* Convenience success constant */
 #define AEMLIB_STATUS_OK AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_OK)
 
+/* Helper for returning the current status if it is not OK. */
+#define AEMLIB_CHECK_STATUS(status)             \
+    do {                                        \
+        if ((status) != AEMLIB_STATUS_OK) {     \
+            return (status);                    \
+        }                                       \
+    } while (0)
+
 /**
  * Convert a status to a human-readable string.
  * Todo: Implemented in status.c. (Stubbed for now.)

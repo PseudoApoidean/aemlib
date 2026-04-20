@@ -3,9 +3,6 @@
 
 // DEFINITIONS ---------------------------------------------------------------
 
-#define CHECK_STATUS(status) \
-    if  (status != AEMLIB_STATUS_OK) {return status;}
-
 // INTERNAL HELPERS ----------------------------------------------------------
 
 static inline aemlib_status_t ensure_space(size_t needed,
@@ -23,7 +20,7 @@ static inline aemlib_status_t reserve_space(size_t *offset,
                                             size_t buf_len)
 {
     aemlib_status_t status = ensure_space(size, *offset, buf_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
     *offset += size;
     return AEMLIB_STATUS_OK;
 }
@@ -45,7 +42,7 @@ static inline aemlib_status_t append_uint16_be(uint8_t *buf,
                                                uint16_t value)
 {
     aemlib_status_t status = ensure_space(2, *offset, buf_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
     buf[(*offset)++] = (uint8_t)(value >> AEMLIB_MQTT_BYTE_SHIFT);
     buf[(*offset)++] = (uint8_t)(value & AEMLIB_MQTT_LOW_BYTE_MASK);
     return AEMLIB_STATUS_OK;
@@ -119,7 +116,7 @@ aemlib_status_t aemlib_proto_write_utf8(uint8_t *buf,
     size_t len = strlen(str);
 
     aemlib_status_t status = ensure_space(AEMLIB_MQTT_UTF8_LENGTH_PREFIX_SIZE + len, *offset, buf_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     buf[*offset + 0] = (uint8_t)((len >> AEMLIB_MQTT_BYTE_SHIFT) & AEMLIB_MQTT_LOW_BYTE_MASK);
     buf[*offset + 1] = (uint8_t)(len & AEMLIB_MQTT_LOW_BYTE_MASK);
@@ -150,7 +147,7 @@ aemlib_status_t aemlib_proto_decode_fixed_header(const uint8_t *buf,
     aemlib_status_t status =
         aemlib_proto_decode_remaining_length(&buf[1], buf_len - 1, &remaining_len, &consumed);
 
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     out->remaining_length = remaining_len;
     out->header_size = 1 + consumed;
@@ -170,33 +167,33 @@ aemlib_status_t aemlib_proto_encode_connect(uint8_t *buf,
     aemlib_status_t status;
 
     status = append_byte(buf, &offset, buf_len, (uint8_t)(AEMLIB_MQTT_PKT_CONNECT << AEMLIB_MQTT_PACKET_TYPE_SHIFT));
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     size_t rl_pos = offset;
     status = reserve_space(&offset, AEMLIB_MQTT_REMAINING_LENGTH_MAX_BYTES, buf_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     status = aemlib_proto_write_utf8(buf, buf_len, &offset, "MQTT");
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     status = append_byte(buf, &offset, buf_len, AEMLIB_MQTT_PROTOCOL_LEVEL);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     status = append_byte(buf, &offset, buf_len, AEMLIB_MQTT_CONNECT_CLEAN_SESSION);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     status = append_uint16_be(buf, &offset, buf_len, keepalive_sec);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     status = aemlib_proto_write_utf8(buf, buf_len, &offset, client_id);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     uint32_t rl = (uint32_t)(offset - (rl_pos + AEMLIB_MQTT_REMAINING_LENGTH_MAX_BYTES));
     uint8_t rl_buf[AEMLIB_MQTT_REMAINING_LENGTH_MAX_BYTES];
     size_t rl_len = 0;
 
     status = aemlib_proto_encode_remaining_length(rl, rl_buf, sizeof(rl_buf), &rl_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     memmove(&buf[rl_pos + rl_len], &buf[rl_pos + AEMLIB_MQTT_REMAINING_LENGTH_MAX_BYTES], rl);
     memcpy(&buf[rl_pos], rl_buf, rl_len);
@@ -258,15 +255,15 @@ aemlib_status_t aemlib_proto_encode_publish(uint8_t *buf,
     // Reserve RL
     size_t rl_pos = offset;
     status = reserve_space(&offset, AEMLIB_MQTT_REMAINING_LENGTH_MAX_BYTES, buf_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     // Topic
     status = aemlib_proto_write_utf8(buf, buf_len, &offset, topic);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     // Payload
     status = ensure_space(payload_len, offset, buf_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
     memcpy(&buf[offset], payload, payload_len);
     offset += payload_len;
 
@@ -276,7 +273,7 @@ aemlib_status_t aemlib_proto_encode_publish(uint8_t *buf,
     size_t rl_len = 0;
 
     status = aemlib_proto_encode_remaining_length(rl, rl_buf, sizeof(rl_buf), &rl_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     memmove(&buf[rl_pos + rl_len], &buf[rl_pos + AEMLIB_MQTT_REMAINING_LENGTH_MAX_BYTES], rl);
     memcpy(&buf[rl_pos], rl_buf, rl_len);
@@ -307,15 +304,15 @@ aemlib_status_t aemlib_proto_encode_subscribe(uint8_t *buf,
 
     // Packet ID
     status = append_uint16_be(buf, &offset, buf_len, packet_id);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     // Topic
     status = aemlib_proto_write_utf8(buf, buf_len, &offset, topic);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     // Requested QoS
     status = append_byte(buf, &offset, buf_len, AEMLIB_MQTT_SUBSCRIBE_PAYLOAD_QOS);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     // Compute RL
     uint32_t rl = (uint32_t)(offset - (rl_pos + AEMLIB_MQTT_REMAINING_LENGTH_MAX_BYTES));
@@ -323,7 +320,7 @@ aemlib_status_t aemlib_proto_encode_subscribe(uint8_t *buf,
     size_t rl_len = 0;
 
     status = aemlib_proto_encode_remaining_length(rl, rl_buf, sizeof(rl_buf), &rl_len);
-    CHECK_STATUS(status)
+    AEMLIB_CHECK_STATUS(status);
 
     memmove(&buf[rl_pos + rl_len], &buf[rl_pos + AEMLIB_MQTT_REMAINING_LENGTH_MAX_BYTES], rl);
     memcpy(&buf[rl_pos], rl_buf, rl_len);

@@ -48,9 +48,7 @@ aemlib_status_t aemlib_core_init(aemlib_client_t *client,
     }
 
     aemlib_status_t status = validate_config(config);
-    if (status != AEMLIB_STATUS_OK) {
-        return status;
-    }
+    AEMLIB_CHECK_STATUS(status);
 
     apply_config(client, config);
     client->packet_id = 1;
