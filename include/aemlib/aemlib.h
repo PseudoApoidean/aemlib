@@ -1,6 +1,9 @@
 #ifndef AEMLIB_AEMLIB_H
 #define AEMLIB_AEMLIB_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "aemlib/status.h"
 #include "aemlib/log.h"
 
