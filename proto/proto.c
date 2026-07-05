@@ -48,6 +48,47 @@ static inline aemlib_status_t append_uint16_be(uint8_t *buf,
     return AEMLIB_STATUS_OK;
 }
 
+/* Validate MQTT packet flags according to MQTT 3.1.1 specification */
+static aemlib_status_t validate_mqtt_flags(aemlib_mqtt_packet_type_t type, uint8_t flags)
+{
+    switch (type) {
+    case AEMLIB_MQTT_PKT_CONNECT:
+    case AEMLIB_MQTT_PKT_CONNACK:
+    case AEMLIB_MQTT_PKT_PUBACK:
+    case AEMLIB_MQTT_PKT_SUBACK:
+    case AEMLIB_MQTT_PKT_PINGREQ:
+    case AEMLIB_MQTT_PKT_PINGRESP:
+    case AEMLIB_MQTT_PKT_DISCONNECT:
+        if (flags != 0x00) {
+            return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL);
+        }
+        break;
+
+    case AEMLIB_MQTT_PKT_PUBLISH: {
+        /* DUP (bit 3) and RETAIN (bit 0) are independent of QoS and may be
+         * legitimately set by the broker (e.g. retained messages); only the
+         * QoS bits (2-1) are constrained here, since 0b11 is reserved. */
+        uint8_t qos = (flags >> 1) & 0x03;
+        if (qos == 0x03) {
+            return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL);
+        }
+        break;
+    }
+
+    case AEMLIB_MQTT_PKT_SUBSCRIBE:
+        if (flags != 0x02) {
+            return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL);
+        }
+        break;
+
+    default:
+        // Unknown packet type - this is also invalid
+        return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL);
+    }
+
+    return AEMLIB_STATUS_OK;
+}
+
 // REMAINING LENGTH ----------------------------------------------------------
 
 aemlib_status_t aemlib_proto_encode_remaining_length(uint32_t value,
@@ -141,12 +182,14 @@ aemlib_status_t aemlib_proto_decode_fixed_header(const uint8_t *buf,
     out->type = (aemlib_mqtt_packet_type_t)(header_byte >> AEMLIB_MQTT_PACKET_TYPE_SHIFT);
     out->flags = header_byte & AEMLIB_MQTT_FLAGS_MASK;
 
+    // Validate flags according to MQTT specification
+    aemlib_status_t status = validate_mqtt_flags(out->type, out->flags);
+    AEMLIB_CHECK_STATUS(status);
+
     uint32_t remaining_len = 0;
     size_t consumed = 0;
 
-    aemlib_status_t status =
-        aemlib_proto_decode_remaining_length(&buf[1], buf_len - 1, &remaining_len, &consumed);
-
+    status = aemlib_proto_decode_remaining_length(&buf[1], buf_len - 1, &remaining_len, &consumed);
     AEMLIB_CHECK_STATUS(status);
 
     out->remaining_length = remaining_len;

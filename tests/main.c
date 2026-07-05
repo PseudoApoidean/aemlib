@@ -44,6 +44,10 @@ int main(void) {
     RUN_TEST(test_aemlib_proto_encode_subscribe);
     RUN_TEST(test_aemlib_proto_decode_fixed_header_connect);
     RUN_TEST(test_aemlib_proto_decode_fixed_header_pingreq);
+    RUN_TEST(test_aemlib_proto_decode_fixed_header_invalid_flags_connect);
+    RUN_TEST(test_aemlib_proto_decode_fixed_header_invalid_flags_pingreq);
+    RUN_TEST(test_aemlib_proto_decode_fixed_header_invalid_flags_subscribe);
+    RUN_TEST(test_aemlib_proto_decode_fixed_header_invalid_packet_type);
     RUN_TEST(test_aemlib_proto_decode_connack);
     RUN_TEST(test_aemlib_proto_decode_suback);
 

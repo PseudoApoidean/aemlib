@@ -264,6 +264,34 @@ void test_aemlib_proto_decode_fixed_header_pingreq(void) {
     TEST_ASSERT_EQUAL(2, header.header_size);
 }
 
+void test_aemlib_proto_decode_fixed_header_invalid_flags_connect(void) {
+    uint8_t buf[] = {0x1F, 0x00}; // CONNECT with invalid flags (should be 0x00)
+    aemlib_mqtt_fixed_header_t header;
+    aemlib_status_t status = aemlib_proto_decode_fixed_header(buf, sizeof(buf), &header);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL), status);
+}
+
+void test_aemlib_proto_decode_fixed_header_invalid_flags_pingreq(void) {
+    uint8_t buf[] = {0xCF, 0x00}; // PINGREQ with invalid flags (should be 0x00)
+    aemlib_mqtt_fixed_header_t header;
+    aemlib_status_t status = aemlib_proto_decode_fixed_header(buf, sizeof(buf), &header);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL), status);
+}
+
+void test_aemlib_proto_decode_fixed_header_invalid_flags_subscribe(void) {
+    uint8_t buf[] = {0x80, 0x00}; // SUBSCRIBE with invalid flags (should be 0x02)
+    aemlib_mqtt_fixed_header_t header;
+    aemlib_status_t status = aemlib_proto_decode_fixed_header(buf, sizeof(buf), &header);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL), status);
+}
+
+void test_aemlib_proto_decode_fixed_header_invalid_packet_type(void) {
+    uint8_t buf[] = {0x50, 0x00}; // Invalid packet type (5) with flags 0
+    aemlib_mqtt_fixed_header_t header;
+    aemlib_status_t status = aemlib_proto_decode_fixed_header(buf, sizeof(buf), &header);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL), status);
+}
+
 // Test aemlib_proto_decode_connack
 void test_aemlib_proto_decode_connack(void) {
     uint8_t buf[] = {0x20, 0x02, 0x00, 0x00}; // CONNACK packet
