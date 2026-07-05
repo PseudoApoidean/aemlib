@@ -23,6 +23,10 @@ int main(void) {
     RUN_TEST(test_aemlib_core_next_packet_id_null_client);
     RUN_TEST(test_aemlib_core_next_packet_id_normal);
     RUN_TEST(test_aemlib_core_next_packet_id_wraparound);
+    RUN_TEST(test_aemlib_core_connect_invalid_transitions);
+    RUN_TEST(test_aemlib_core_disconnect_invalid_transitions);
+    RUN_TEST(test_aemlib_core_poll_invalid_state);
+    RUN_TEST(test_aemlib_core_state_machine_connect_flow);
 
     // Proto tests
     RUN_TEST(test_aemlib_proto_encode_remaining_length_zero);

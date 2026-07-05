@@ -225,3 +225,92 @@ void test_aemlib_core_next_packet_id_wraparound(void) {
     TEST_ASSERT_EQUAL(1, id);
     TEST_ASSERT_EQUAL(1, client.packet_id);
 }
+
+// Test state machine protocol conformance
+void test_aemlib_core_connect_invalid_transitions(void) {
+    // Test connect from CONNECTING state (invalid)
+    aemlib_client_t client = {
+        .state = AEMLIB_STATE_CONNECTING
+    };
+    aemlib_status_t status = aemlib_core_connect(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_STATE_INVALID), status);
+
+    // Test connect from MQTT_CONNECT_SENT state (invalid)
+    client.state = AEMLIB_STATE_MQTT_CONNECT_SENT;
+    status = aemlib_core_connect(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_STATE_INVALID), status);
+
+    // Test connect from MQTT_DISCONNECTING state (invalid)
+    client.state = AEMLIB_STATE_MQTT_DISCONNECTING;
+    status = aemlib_core_connect(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_STATE_INVALID), status);
+}
+
+void test_aemlib_core_disconnect_invalid_transitions(void) {
+    // Test disconnect from DISCONNECTED state (invalid)
+    aemlib_client_t client = {
+        .state = AEMLIB_STATE_DISCONNECTED
+    };
+    aemlib_status_t status = aemlib_core_disconnect(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_STATE_INVALID), status);
+
+    // Test disconnect from CONNECTING state (invalid)
+    client.state = AEMLIB_STATE_CONNECTING;
+    status = aemlib_core_disconnect(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_STATE_INVALID), status);
+
+    // Test disconnect from MQTT_CONNECT_SENT state (invalid)
+    client.state = AEMLIB_STATE_MQTT_CONNECT_SENT;
+    status = aemlib_core_disconnect(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_STATE_INVALID), status);
+}
+
+void test_aemlib_core_poll_invalid_state(void) {
+    aemlib_client_t client = {
+        .state = 999  // Invalid state
+    };
+    aemlib_status_t status = aemlib_core_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_STATE_INVALID), status);
+}
+
+void test_aemlib_core_state_machine_connect_flow(void) {
+    aemlib_client_t client = {
+        .state = AEMLIB_STATE_DISCONNECTED,
+        .transport = {
+            .connect = mock_transport_connect,
+            .disconnect = mock_transport_disconnect,
+            .read = mock_transport_read,
+            .write = mock_transport_write,
+            .ctx = NULL
+        },
+        .time = {
+            .now_ms = mock_time_now,
+            .ctx = NULL
+        }
+    };
+
+    // Start connection
+    aemlib_status_t status = aemlib_core_connect(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(AEMLIB_STATE_CONNECTING, client.state);
+
+    // Poll while connecting (transport connect succeeds)
+    status = aemlib_core_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(AEMLIB_STATE_MQTT_CONNECT_SENT, client.state);
+
+    // Poll while waiting for CONNACK (placeholder implementation moves to connected)
+    status = aemlib_core_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(AEMLIB_STATE_MQTT_CONNECTED, client.state);
+
+    // Now disconnect should work
+    status = aemlib_core_disconnect(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(AEMLIB_STATE_MQTT_DISCONNECTING, client.state);
+
+    // Poll while disconnecting
+    status = aemlib_core_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(AEMLIB_STATE_DISCONNECTED, client.state);
+}
