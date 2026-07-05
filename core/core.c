@@ -50,7 +50,9 @@ aemlib_status_t aemlib_core_init(aemlib_client_t *client,
     aemlib_status_t status = validate_config(config);
     AEMLIB_CHECK_STATUS(status);
 
-    apply_config(client, config);
+    status = apply_config(client, config);
+    AEMLIB_CHECK_STATUS(status);
+
     client->packet_id = 1;
 
     client->state = AEMLIB_STATE_DISCONNECTED;
@@ -206,6 +208,8 @@ static aemlib_status_t apply_config(aemlib_client_t *client, const aemlib_core_c
     client->rx_buffer_size        = config->rx_buffer_size;
 
     client->keepalive_interval_ms = config->keepalive_interval_ms;
+
+    return AEMLIB_STATUS_OK;
 }
 
 static aemlib_status_t handle_state_mqtt_disconnecting(aemlib_client_t *client)
