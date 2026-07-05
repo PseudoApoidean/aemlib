@@ -241,6 +241,34 @@ void test_aemlib_proto_encode_subscribe(void) {
     TEST_ASSERT_EQUAL(0x00, buf[16]);
 }
 
+void test_aemlib_proto_encode_connect_buffer_too_small(void) {
+    uint8_t buf[10]; // Too small for CONNECT packet
+    size_t out_len;
+    const char *client_id = "test_client";
+    uint16_t keepalive = 60;
+    aemlib_status_t status = aemlib_proto_encode_connect(buf, sizeof(buf), &out_len, client_id, keepalive);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_BUFFER_TOO_SMALL), status);
+}
+
+void test_aemlib_proto_encode_publish_buffer_too_small(void) {
+    uint8_t buf[5]; // Too small for PUBLISH packet
+    size_t out_len;
+    const char *topic = "test/topic";
+    const uint8_t payload[] = "hello";
+    size_t payload_len = 5;
+    aemlib_status_t status = aemlib_proto_encode_publish(buf, sizeof(buf), &out_len, topic, payload, payload_len);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_BUFFER_TOO_SMALL), status);
+}
+
+void test_aemlib_proto_encode_subscribe_buffer_too_small(void) {
+    uint8_t buf[5]; // Too small for SUBSCRIBE packet
+    size_t out_len;
+    uint16_t packet_id = 1;
+    const char *topic = "test/topic";
+    aemlib_status_t status = aemlib_proto_encode_subscribe(buf, sizeof(buf), &out_len, packet_id, topic);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_BUFFER_TOO_SMALL), status);
+}
+
 // Test aemlib_proto_decode_fixed_header
 void test_aemlib_proto_decode_fixed_header_connect(void) {
     uint8_t buf[] = {0x10, 0x00}; // CONNECT packet, remaining length 0

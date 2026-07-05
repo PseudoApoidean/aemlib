@@ -42,6 +42,9 @@ int main(void) {
     RUN_TEST(test_aemlib_proto_encode_connect);
     RUN_TEST(test_aemlib_proto_encode_publish);
     RUN_TEST(test_aemlib_proto_encode_subscribe);
+    RUN_TEST(test_aemlib_proto_encode_connect_buffer_too_small);
+    RUN_TEST(test_aemlib_proto_encode_publish_buffer_too_small);
+    RUN_TEST(test_aemlib_proto_encode_subscribe_buffer_too_small);
     RUN_TEST(test_aemlib_proto_decode_fixed_header_connect);
     RUN_TEST(test_aemlib_proto_decode_fixed_header_pingreq);
     RUN_TEST(test_aemlib_proto_decode_fixed_header_invalid_flags_connect);
