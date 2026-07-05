@@ -109,8 +109,8 @@ static aemlib_status_t client_send_ping(aemlib_client_t *client)
 
 /* PUBLIC API ------------------------------------------------------------ */
 
-aemlib_status_t aemlib_client_init(aemlib_client_t *client,
-                                   const aemlib_core_config_t *cfg)
+aemlib_status_t aemlib_init(aemlib_client_t *client,
+                            const aemlib_config_t *cfg)
 {
     if (!client) {
         return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_INVALID_ARG);
@@ -120,7 +120,7 @@ aemlib_status_t aemlib_client_init(aemlib_client_t *client,
     return aemlib_core_init(client, cfg);
 }
 
-aemlib_status_t aemlib_client_connect(aemlib_client_t *client)
+aemlib_status_t aemlib_connect(aemlib_client_t *client)
 {
     if (!client) {
         return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_INVALID_ARG);
@@ -129,7 +129,7 @@ aemlib_status_t aemlib_client_connect(aemlib_client_t *client)
     return aemlib_core_connect(client);
 }
 
-aemlib_status_t aemlib_client_disconnect(aemlib_client_t *client)
+aemlib_status_t aemlib_disconnect(aemlib_client_t *client)
 {
     if (!client) {
         return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_INVALID_ARG);
@@ -138,11 +138,11 @@ aemlib_status_t aemlib_client_disconnect(aemlib_client_t *client)
     return aemlib_core_disconnect(client);
 }
 
-aemlib_status_t aemlib_client_publish(aemlib_client_t *client,
-                                      const char *topic,
-                                      const uint8_t *payload,
-                                      size_t payload_len,
-                                      int qos)
+aemlib_status_t aemlib_publish(aemlib_client_t *client,
+                               const char *topic,
+                               const uint8_t *payload,
+                               size_t payload_len,
+                               int qos)
 {
     if (!client) {
         return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_INVALID_ARG);
@@ -167,13 +167,40 @@ aemlib_status_t aemlib_client_publish(aemlib_client_t *client,
     return client_send(client, client->tx_buffer, out_len);
 }
 
+aemlib_status_t aemlib_subscribe(aemlib_client_t *client,
+                                 const char *topic,
+                                 int qos)
+{
+    if (!client) {
+        return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_INVALID_ARG);
+    }
+
+    if (qos != 0) {
+        return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_UNSUPPORTED);
+    }
+
+    size_t out_len = 0;
+    uint16_t packet_id = aemlib_core_next_packet_id(client);
+
+    aemlib_status_t status = aemlib_proto_encode_subscribe(
+        client->tx_buffer,
+        client->tx_buffer_size,
+        &out_len,
+        packet_id,
+        topic);
+
+    AEMLIB_CHECK_STATUS(status);
+
+    return client_send(client, client->tx_buffer, out_len);
+}
+
 /*
  * Cooperative poll:
  * - Drive core state machine
  * - Perform I/O
  * - Handle keepalive
  */
-aemlib_status_t aemlib_client_poll(aemlib_client_t *client)
+aemlib_status_t aemlib_poll(aemlib_client_t *client)
 {
     if (!client) {
         return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_INVALID_ARG);

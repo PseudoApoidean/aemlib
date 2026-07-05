@@ -1,6 +1,7 @@
 #ifndef AEMLIB_CORE_H
 #define AEMLIB_CORE_H
 
+#include "aemlib/aemlib.h"
 #include "aemlib/status.h"
 #include "../platform/transport.h"
 #include "../platform/time.h"
@@ -15,56 +16,10 @@ extern "C" {
 
 // DEFINITIONS ------------------------
 
-/* Internal client states */
-typedef enum {
-    AEMLIB_STATE_DISCONNECTED = 0,
-    AEMLIB_STATE_CONNECTING,
-    AEMLIB_STATE_MQTT_CONNECT_SENT,
-    AEMLIB_STATE_MQTT_CONNECTED,
-    AEMLIB_STATE_MQTT_DISCONNECTING,
-} aemlib_state_t;
-
-/* Forward declaration of the opaque client */
-typedef struct aemlib_client {
-    /* Current state */
-    aemlib_state_t state;
-
-    /* User-provided interfaces */
-    aemlib_transport_t transport;
-    aemlib_time_t      time;
-    aemlib_storage_t   storage;
-
-    /* Buffers (owned by user, referenced here) */
-    uint8_t *tx_buffer;
-    size_t   tx_buffer_size;
-
-    uint8_t *rx_buffer;
-    size_t   rx_buffer_size;
-
-    /* Internal bookkeeping */
-    uint64_t last_activity_ms;
-    uint64_t keepalive_interval_ms;
-
-    /* MQTT packet ID counter (for QoS1) */
-    uint16_t packet_id;
-
-} aemlib_client_t;
-
-/* Configuration passed to aemlib_init() */
-typedef struct {
-    uint8_t *tx_buffer;
-    size_t   tx_buffer_size;
-
-    uint8_t *rx_buffer;
-    size_t   rx_buffer_size;
-
-    aemlib_transport_t transport;
-    aemlib_time_t      time;
-    aemlib_storage_t   storage; /* optional; zero-init if unused */
-
-    uint64_t keepalive_interval_ms;
-
-} aemlib_core_config_t;
+/* aemlib_state_t, aemlib_client_t, and aemlib_config_t are defined in
+ * aemlib/aemlib.h; aemlib_core_config_t is the internal name used by the
+ * core/client implementation for the same configuration type. */
+typedef aemlib_config_t aemlib_core_config_t;
 
 // DECLARATIONS -----------------------
 
