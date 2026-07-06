@@ -153,6 +153,16 @@ aemlib_status_t aemlib_proto_decode_fixed_header(const uint8_t *buf,
                                                  size_t buf_len,
                                                  aemlib_mqtt_fixed_header_t *out);
 
+/* Decode PUBLISH (QoS 0 only for now). buf/buf_len is the whole packet
+ * (fixed header included); topic/payload are returned as pointers into buf. */
+aemlib_status_t aemlib_proto_decode_publish(const uint8_t *buf,
+                                            size_t buf_len,
+                                            const aemlib_mqtt_fixed_header_t *header,
+                                            const char **topic,
+                                            size_t *topic_len,
+                                            const uint8_t **payload,
+                                            size_t *payload_len);
+
 /* Decode CONNACK */
 aemlib_status_t aemlib_proto_decode_connack(const uint8_t *buf,
                                             size_t buf_len,

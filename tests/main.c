@@ -55,6 +55,9 @@ int main(void) {
     RUN_TEST(test_aemlib_proto_decode_fixed_header_invalid_flags_pingreq);
     RUN_TEST(test_aemlib_proto_decode_fixed_header_invalid_flags_subscribe);
     RUN_TEST(test_aemlib_proto_decode_fixed_header_invalid_packet_type);
+    RUN_TEST(test_aemlib_proto_decode_publish_normal);
+    RUN_TEST(test_aemlib_proto_decode_publish_truncated_topic);
+    RUN_TEST(test_aemlib_proto_decode_publish_qos1_unsupported);
     RUN_TEST(test_aemlib_proto_decode_connack);
     RUN_TEST(test_aemlib_proto_decode_suback);
 

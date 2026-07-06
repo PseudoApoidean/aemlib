@@ -209,6 +209,9 @@ static aemlib_status_t apply_config(aemlib_client_t *client, const aemlib_core_c
 
     client->keepalive_interval_ms = config->keepalive_interval_ms;
 
+    client->on_message            = config->on_message;
+    client->on_message_ctx        = config->on_message_ctx;
+
     return AEMLIB_STATUS_OK;
 }
 

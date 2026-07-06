@@ -325,6 +325,52 @@ aemlib_status_t aemlib_proto_encode_publish(uint8_t *buf,
     return AEMLIB_STATUS_OK;
 }
 
+aemlib_status_t aemlib_proto_decode_publish(const uint8_t *buf,
+                                            size_t buf_len,
+                                            const aemlib_mqtt_fixed_header_t *header,
+                                            const char **topic,
+                                            size_t *topic_len,
+                                            const uint8_t **payload,
+                                            size_t *payload_len)
+{
+    if (!buf || !header || !topic || !topic_len || !payload || !payload_len) {
+        return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_INVALID_ARG);
+    }
+
+    /* QoS 1/2 PUBLISH carry a packet identifier we don't parse yet */
+    uint8_t qos = (header->flags >> 1) & 0x03;
+    if (qos != 0) {
+        return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_UNSUPPORTED);
+    }
+
+    size_t offset = header->header_size;
+    size_t packet_end = header->header_size + header->remaining_length;
+
+    if (packet_end > buf_len) {
+        return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_BUFFER_TOO_SMALL);
+    }
+
+    if (offset + AEMLIB_MQTT_UTF8_LENGTH_PREFIX_SIZE > packet_end) {
+        return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_MALFORMED);
+    }
+
+    size_t topic_length = ((size_t)buf[offset] << AEMLIB_MQTT_BYTE_SHIFT) | buf[offset + 1];
+    offset += AEMLIB_MQTT_UTF8_LENGTH_PREFIX_SIZE;
+
+    if (offset + topic_length > packet_end) {
+        return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_MALFORMED);
+    }
+
+    *topic = (const char *)&buf[offset];
+    *topic_len = topic_length;
+    offset += topic_length;
+
+    *payload = &buf[offset];
+    *payload_len = packet_end - offset;
+
+    return AEMLIB_STATUS_OK;
+}
+
 // SUBSCRIBE (single topic, QoS 0) ------------------------------------------
 
 aemlib_status_t aemlib_proto_encode_subscribe(uint8_t *buf,

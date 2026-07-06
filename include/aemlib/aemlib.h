@@ -42,6 +42,15 @@ typedef struct {
     void *ctx;
 } aemlib_storage_t;
 
+/* User callback for inbound PUBLISH messages (QoS 0 only for now).
+ * topic/payload point into the client's rx_buffer and are only valid for
+ * the duration of the callback; topic is NOT null-terminated. */
+typedef void (*aemlib_message_fn)(void *ctx,
+                                  const char *topic,
+                                  size_t topic_len,
+                                  const uint8_t *payload,
+                                  size_t payload_len);
+
 /* Internal client states */
 typedef enum {
     AEMLIB_STATE_DISCONNECTED = 0,
@@ -76,6 +85,10 @@ typedef struct aemlib_client {
     /* MQTT packet ID counter (for QoS1) */
     uint16_t packet_id;
 
+    /* Inbound PUBLISH callback (optional; NULL if unused) */
+    aemlib_message_fn on_message;
+    void             *on_message_ctx;
+
 } aemlib_client_t;
 
 /* Client configuration */
@@ -91,6 +104,10 @@ typedef struct {
     aemlib_storage_t   storage; /* optional; zero-init if unused */
 
     uint64_t keepalive_interval_ms;
+
+    /* Inbound PUBLISH callback (optional; NULL if unused) */
+    aemlib_message_fn on_message;
+    void             *on_message_ctx;
 
 } aemlib_config_t;
 

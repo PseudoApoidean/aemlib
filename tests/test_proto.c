@@ -320,6 +320,56 @@ void test_aemlib_proto_decode_fixed_header_invalid_packet_type(void) {
     TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL), status);
 }
 
+// Test aemlib_proto_decode_publish
+void test_aemlib_proto_decode_publish_normal(void) {
+    // PUBLISH, topic "a/b" (3 bytes), payload "hi" (2 bytes)
+    uint8_t buf[] = {0x30, 0x07, 0x00, 0x03, 'a', '/', 'b', 'h', 'i'};
+    aemlib_mqtt_fixed_header_t header;
+    aemlib_status_t status = aemlib_proto_decode_fixed_header(buf, sizeof(buf), &header);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+
+    const char *topic;
+    size_t topic_len;
+    const uint8_t *payload;
+    size_t payload_len;
+    status = aemlib_proto_decode_publish(buf, sizeof(buf), &header, &topic, &topic_len, &payload, &payload_len);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(3, topic_len);
+    TEST_ASSERT_EQUAL_MEMORY("a/b", topic, topic_len);
+    TEST_ASSERT_EQUAL(2, payload_len);
+    TEST_ASSERT_EQUAL_MEMORY("hi", payload, payload_len);
+}
+
+void test_aemlib_proto_decode_publish_truncated_topic(void) {
+    // Claims a 3-byte topic but only 1 byte follows
+    uint8_t buf[] = {0x30, 0x03, 0x00, 0x03, 'a'};
+    aemlib_mqtt_fixed_header_t header;
+    aemlib_status_t status = aemlib_proto_decode_fixed_header(buf, sizeof(buf), &header);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+
+    const char *topic;
+    size_t topic_len;
+    const uint8_t *payload;
+    size_t payload_len;
+    status = aemlib_proto_decode_publish(buf, sizeof(buf), &header, &topic, &topic_len, &payload, &payload_len);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_MALFORMED), status);
+}
+
+void test_aemlib_proto_decode_publish_qos1_unsupported(void) {
+    // QoS 1 flags (0x02) not yet supported by the decoder
+    uint8_t buf[] = {0x32, 0x07, 0x00, 0x03, 'a', '/', 'b', 'h', 'i'};
+    aemlib_mqtt_fixed_header_t header;
+    aemlib_status_t status = aemlib_proto_decode_fixed_header(buf, sizeof(buf), &header);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+
+    const char *topic;
+    size_t topic_len;
+    const uint8_t *payload;
+    size_t payload_len;
+    status = aemlib_proto_decode_publish(buf, sizeof(buf), &header, &topic, &topic_len, &payload, &payload_len);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_UNSUPPORTED), status);
+}
+
 // Test aemlib_proto_decode_connack
 void test_aemlib_proto_decode_connack(void) {
     uint8_t buf[] = {0x20, 0x02, 0x00, 0x00}; // CONNACK packet
