@@ -2,6 +2,7 @@
 
 // Test files
 #include "test_core.c"
+#include "test_client.c"
 #include "test_proto.c"
 #include "test_virtual_transport.c"
 
@@ -30,6 +31,9 @@ int main(void) {
     RUN_TEST(test_aemlib_core_state_machine_connect_flow);
     RUN_TEST(test_aemlib_core_connect_sent_connack_rejected);
     RUN_TEST(test_aemlib_core_connect_sent_connack_timeout);
+
+    // Client tests
+    RUN_TEST(test_aemlib_poll_sends_connect_only_once_while_waiting_for_connack);
 
     // Proto tests
     RUN_TEST(test_aemlib_proto_encode_remaining_length_zero);

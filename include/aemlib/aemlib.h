@@ -85,6 +85,10 @@ typedef struct aemlib_client {
     /* MQTT packet ID counter (for QoS1) */
     uint16_t packet_id;
 
+    /* Set once the CONNECT packet has been sent for the current connection
+     * attempt, so a slow CONNACK (multiple polls) doesn't re-send it */
+    uint8_t connect_sent;
+
     /* Inbound PUBLISH callback (optional; NULL if unused) */
     aemlib_message_fn on_message;
     void             *on_message_ctx;

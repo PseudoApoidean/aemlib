@@ -109,6 +109,7 @@ aemlib_status_t aemlib_core_connect(aemlib_client_t *client)
     AEMLIB_LOG_INFO(AEMLIB_LOG_MODULE_CORE, "starting connection");
 
     client->state = AEMLIB_STATE_CONNECTING;
+    client->connect_sent = 0;
     return AEMLIB_STATUS_OK;
 }
 

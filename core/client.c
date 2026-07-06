@@ -244,10 +244,15 @@ aemlib_status_t aemlib_poll(aemlib_client_t *client)
     switch (client->state) {
 
     case AEMLIB_STATE_MQTT_CONNECT_SENT:
-        /* After transport connect, send CONNECT packet */
-        status = client_send_connect(client);
-        if (status != AEMLIB_STATUS_OK) {
-            return status;
+        /* Send CONNECT once; a real broker can take several polls to reply
+         * with CONNACK, and re-sending CONNECT while waiting is a protocol
+         * violation that gets the connection dropped. */
+        if (!client->connect_sent) {
+            status = client_send_connect(client);
+            if (status != AEMLIB_STATUS_OK) {
+                return status;
+            }
+            client->connect_sent = 1;
         }
         break;
 
