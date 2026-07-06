@@ -11,6 +11,7 @@ add_library(aemlib
     core/log.c
     core/status.c
     proto/proto.c
+    platform/virtual_transport.c
 )
 
 target_include_directories(aemlib

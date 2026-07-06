@@ -3,6 +3,7 @@
 // Test files
 #include "test_core.c"
 #include "test_proto.c"
+#include "test_virtual_transport.c"
 
 int main(void) {
     UNITY_BEGIN();
@@ -62,6 +63,12 @@ int main(void) {
     RUN_TEST(test_aemlib_proto_decode_publish_qos1_unsupported);
     RUN_TEST(test_aemlib_proto_decode_connack);
     RUN_TEST(test_aemlib_proto_decode_suback);
+
+    // Virtual transport tests
+    RUN_TEST(test_aemlib_virtual_transport_a_to_b);
+    RUN_TEST(test_aemlib_virtual_transport_wraparound);
+    RUN_TEST(test_aemlib_virtual_transport_write_full_would_block);
+    RUN_TEST(test_aemlib_virtual_transport_disconnected_read_write);
 
     return UNITY_END();
 }
