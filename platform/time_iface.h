@@ -1,5 +1,5 @@
-#ifndef AEMLIB_TIME_H
-#define AEMLIB_TIME_H
+#ifndef AEMLIB_TIME_IFACE_H
+#define AEMLIB_TIME_IFACE_H
 
 #include "aemlib/aemlib.h"
 
@@ -32,4 +32,4 @@ static inline uint64_t aemlib_time_now(const aemlib_time_t *time) {
 } /* extern "C" */
 #endif
 
-#endif /* AEMLIB_TIME_H */
+#endif /* AEMLIB_TIME_IFACE_H */
