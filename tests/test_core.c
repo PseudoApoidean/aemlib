@@ -1,6 +1,7 @@
 #include "unity.h"
 #include "core.h"
 #include "aemlib/status.h"
+#include "proto.h"
 #include <string.h>
 
 // Mock implementations for testing
@@ -31,6 +32,19 @@ static aemlib_status_t mock_transport_read_connack_rejected(void *ctx, uint8_t *
     static const uint8_t connack[] = {0x20, 0x02, 0x00, 0x05};
     size_t n = sizeof(connack) < len ? sizeof(connack) : len;
     memcpy(buf, connack, n);
+    *out_len = n;
+    return AEMLIB_STATUS_OK;
+}
+
+/* CONNACK immediately followed by another packet's bytes in the same read(),
+ * to verify the trailing bytes survive for client_read() rather than being
+ * discarded along with the consumed CONNACK. */
+static uint8_t g_connack_plus_extra[64];
+static size_t  g_connack_plus_extra_len = 0;
+
+static aemlib_status_t mock_transport_read_connack_plus_extra(void *ctx, uint8_t *buf, size_t len, size_t *out_len) {
+    size_t n = g_connack_plus_extra_len < len ? g_connack_plus_extra_len : len;
+    memcpy(buf, g_connack_plus_extra, n);
     *out_len = n;
     return AEMLIB_STATUS_OK;
 }
@@ -397,4 +411,43 @@ void test_aemlib_core_connect_sent_connack_timeout(void) {
     status = aemlib_core_poll(&client);
     TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_TIMEOUT), status);
     TEST_ASSERT_EQUAL(AEMLIB_STATE_DISCONNECTED, client.state);
+}
+
+void test_aemlib_core_connect_sent_preserves_bytes_after_connack(void) {
+    static const uint8_t connack[] = {0x20, 0x02, 0x00, 0x00};
+    memcpy(g_connack_plus_extra, connack, sizeof(connack));
+
+    size_t extra_len = 0;
+    aemlib_status_t encode_status = aemlib_proto_encode_publish(
+        g_connack_plus_extra + sizeof(connack),
+        sizeof(g_connack_plus_extra) - sizeof(connack),
+        &extra_len, "x", (const uint8_t *)"y", 1);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, encode_status);
+    g_connack_plus_extra_len = sizeof(connack) + extra_len;
+
+    uint8_t rx_buf[64];
+    aemlib_client_t client = {
+        .state = AEMLIB_STATE_MQTT_CONNECT_SENT,
+        .last_activity_ms = 1000,
+        .rx_buffer = rx_buf,
+        .rx_buffer_size = sizeof(rx_buf),
+        .transport = {
+            .connect = mock_transport_connect,
+            .disconnect = mock_transport_disconnect,
+            .read = mock_transport_read_connack_plus_extra,
+            .write = mock_transport_write,
+            .ctx = NULL
+        },
+        .time = {
+            .now_ms = mock_time_now,
+            .ctx = NULL
+        }
+    };
+
+    // AEM-7: CONNACK immediately followed by another packet's bytes in the
+    // same read() used to discard everything past the CONNACK.
+    aemlib_status_t status = aemlib_core_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(AEMLIB_STATE_MQTT_CONNECTED, client.state);
+    TEST_ASSERT_EQUAL(extra_len, client.rx_len);
 }

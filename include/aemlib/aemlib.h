@@ -89,6 +89,15 @@ typedef struct aemlib_client {
      * attempt, so a slow CONNACK (multiple polls) doesn't re-send it */
     uint8_t connect_sent;
 
+    /* Bytes of a previous send() still unsent; always staged at tx_buffer[0].
+     * While non-zero, new sends are refused until this fully flushes. */
+    size_t tx_pending_len;
+
+    /* Bytes currently buffered in rx_buffer awaiting a complete packet -
+     * lets a partial packet wait for more bytes, and multiple packets that
+     * arrive in one read() all get processed instead of only the first. */
+    size_t rx_len;
+
     /* Inbound PUBLISH callback (optional; NULL if unused) */
     aemlib_message_fn on_message;
     void             *on_message_ctx;

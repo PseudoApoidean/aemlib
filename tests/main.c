@@ -31,9 +31,13 @@ int main(void) {
     RUN_TEST(test_aemlib_core_state_machine_connect_flow);
     RUN_TEST(test_aemlib_core_connect_sent_connack_rejected);
     RUN_TEST(test_aemlib_core_connect_sent_connack_timeout);
+    RUN_TEST(test_aemlib_core_connect_sent_preserves_bytes_after_connack);
 
     // Client tests
     RUN_TEST(test_aemlib_poll_sends_connect_only_once_while_waiting_for_connack);
+    RUN_TEST(test_aemlib_poll_retries_partial_write_without_data_loss);
+    RUN_TEST(test_aemlib_poll_processes_multiple_packets_from_one_read);
+    RUN_TEST(test_aemlib_poll_reassembles_packet_split_across_reads);
 
     // Proto tests
     RUN_TEST(test_aemlib_proto_encode_remaining_length_zero);
