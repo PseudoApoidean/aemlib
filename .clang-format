@@ -1,0 +1,44 @@
+---
+# AEMlib code style, derived from the existing codebase and
+# Documentation/Code Style.md in the Dev-Notes vault.
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+UseTab: Never
+ColumnLimit: 100
+
+# Allman for function bodies, attached ("K&R") everywhere else - matches
+# the existing code: functions break to a new line before '{', but
+# structs/enums/if/for/while/switch keep '{' on the same line.
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterControlStatement: false
+  AfterStruct: false
+  AfterEnum: false
+  AfterUnion: false
+  AfterNamespace: false
+  AfterExternBlock: false
+  BeforeElse: false
+  BeforeCatch: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+
+# One parameter per line once a signature doesn't fit, aligned under the
+# first parameter rather than packed - matches multi-line declarations
+# throughout proto.h/proto.c/core.c/client.c.
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+PointerAlignment: Right
+SpaceBeforeParens: ControlStatements
+IndentCaseLabels: false
+
+# Column-aligned '=' in struct field assignment blocks, and column-aligned
+# types in struct member declarations (see apply_config(), aemlib_client_t).
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveDeclarations: Consecutive
+AlignTrailingComments: true
+
+SortIncludes: Never
