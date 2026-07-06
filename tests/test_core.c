@@ -102,11 +102,12 @@ void test_aemlib_core_init_null_config(void) {
 
 void test_aemlib_core_init_invalid_config(void) {
     aemlib_client_t client;
+    uint8_t dummy_rx_buf[10];
     aemlib_core_config_t config = {
         .tx_buffer = NULL,
         .tx_buffer_size = 0,
-        .rx_buffer = (uint8_t*)1,
-        .rx_buffer_size = 10,
+        .rx_buffer = dummy_rx_buf,
+        .rx_buffer_size = sizeof(dummy_rx_buf),
         .transport = {
             .connect = mock_transport_connect,
             .disconnect = mock_transport_disconnect,
@@ -306,7 +307,7 @@ void test_aemlib_core_disconnect_invalid_transitions(void) {
 
 void test_aemlib_core_poll_invalid_state(void) {
     aemlib_client_t client = {
-        .state = 999  // Invalid state
+        .state = (aemlib_state_t)999 // deliberately invalid state
     };
     aemlib_status_t status = aemlib_core_poll(&client);
     TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_STATE_INVALID), status);
