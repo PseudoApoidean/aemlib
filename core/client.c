@@ -57,13 +57,45 @@ static aemlib_status_t client_read(aemlib_client_t *client)
                                                   &read);
 
     if (status == AEMLIB_STATUS_OK && read > 0) {
-        // TODO: decode MQTT packets
-        // size_t consumed = 0;
-        // aemlib_status_t decode_status = aemlib_proto_decode(client->rx_buffer, read, &consumed, client);
-        // if (decode_status != AEMLIB_STATUS_OK) {
-        //     AEMLIB_LOG_ERROR(AEMLIB_LOG_MODULE_CLIENT, "decode error");
-        //     return decode_status;
-        // }
+        aemlib_mqtt_fixed_header_t header;
+        aemlib_status_t decode_status = aemlib_proto_decode_fixed_header(client->rx_buffer, read, &header);
+        if (decode_status != AEMLIB_STATUS_OK) {
+            AEMLIB_LOG_ERROR(AEMLIB_LOG_MODULE_CLIENT, "decode error");
+            return decode_status;
+        }
+
+        switch (header.type) {
+        case AEMLIB_MQTT_PKT_PUBLISH: {
+            const char *topic = NULL;
+            size_t topic_len = 0;
+            const uint8_t *payload = NULL;
+            size_t payload_len = 0;
+
+            decode_status = aemlib_proto_decode_publish(client->rx_buffer, read, &header,
+                                                        &topic, &topic_len, &payload, &payload_len);
+            if (decode_status != AEMLIB_STATUS_OK) {
+                AEMLIB_LOG_ERROR(AEMLIB_LOG_MODULE_CLIENT, "PUBLISH decode error");
+                return decode_status;
+            }
+
+            if (client->on_message) {
+                client->on_message(client->on_message_ctx, topic, topic_len, payload, payload_len);
+            }
+            break;
+        }
+
+        case AEMLIB_MQTT_PKT_PINGRESP:
+            AEMLIB_LOG_DEBUG(AEMLIB_LOG_MODULE_CLIENT, "PINGRESP received");
+            break;
+
+        case AEMLIB_MQTT_PKT_SUBACK:
+            AEMLIB_LOG_DEBUG(AEMLIB_LOG_MODULE_CLIENT, "SUBACK received");
+            break;
+
+        default:
+            AEMLIB_LOG_DEBUG(AEMLIB_LOG_MODULE_CLIENT, "unhandled packet type: %d", header.type);
+            break;
+        }
     }
 
     if (AEMLIB_STATUS_CODE(status) == AEMLIB_CODE_WOULD_BLOCK) {
