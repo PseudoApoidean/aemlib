@@ -22,22 +22,12 @@ static uint8_t broker_topic[128];
 static size_t  broker_topic_len = 0;
 static int     broker_subscribed = 0;
 
-static void broker_tick(aemlib_transport_t *broker_transport)
+static void broker_process_packet(aemlib_transport_t *broker_transport,
+                                  const uint8_t *buf,
+                                  const aemlib_mqtt_fixed_header_t *header,
+                                  size_t packet_len)
 {
-    uint8_t buf[256];
-    size_t read = 0;
-    aemlib_status_t status = aemlib_transport_read(broker_transport, buf, sizeof(buf), &read);
-    if (status != AEMLIB_STATUS_OK || read == 0) {
-        return;
-    }
-
-    aemlib_mqtt_fixed_header_t header;
-    status = aemlib_proto_decode_fixed_header(buf, read, &header);
-    if (status != AEMLIB_STATUS_OK) {
-        return;
-    }
-
-    switch (header.type) {
+    switch (header->type) {
     case AEMLIB_MQTT_PKT_CONNECT: {
         static const uint8_t connack[] = {0x20, 0x02, 0x00, 0x00};
         size_t written = 0;
@@ -47,7 +37,7 @@ static void broker_tick(aemlib_transport_t *broker_transport)
     }
 
     case AEMLIB_MQTT_PKT_SUBSCRIBE: {
-        size_t offset = header.header_size;
+        size_t offset = header->header_size;
         uint16_t packet_id = (uint16_t)(((uint16_t)buf[offset] << 8) | buf[offset + 1]);
         offset += 2;
 
@@ -75,7 +65,8 @@ static void broker_tick(aemlib_transport_t *broker_transport)
         const uint8_t *payload;
         size_t payload_len;
 
-        status = aemlib_proto_decode_publish(buf, read, &header, &topic, &topic_len, &payload, &payload_len);
+        aemlib_status_t status = aemlib_proto_decode_publish(buf, packet_len, header,
+                                                             &topic, &topic_len, &payload, &payload_len);
         if (status != AEMLIB_STATUS_OK) {
             return;
         }
@@ -85,7 +76,7 @@ static void broker_tick(aemlib_transport_t *broker_transport)
         if (broker_subscribed && topic_len == broker_topic_len &&
             memcmp(topic, broker_topic, topic_len) == 0) {
             size_t written = 0;
-            aemlib_transport_write(broker_transport, buf, read, &written);
+            aemlib_transport_write(broker_transport, buf, packet_len, &written);
             printf("[broker] echoing PUBLISH back to subscriber\n");
         }
         break;
@@ -93,6 +84,46 @@ static void broker_tick(aemlib_transport_t *broker_transport)
 
     default:
         break;
+    }
+}
+
+/* Accumulates across calls and processes every complete packet currently
+ * buffered, so packets that arrive coalesced in one read (e.g. a SUBSCRIBE
+ * immediately followed by a PUBLISH) are never silently dropped. */
+static void broker_tick(aemlib_transport_t *broker_transport)
+{
+    static uint8_t buf[256];
+    static size_t buf_len = 0;
+
+    size_t read = 0;
+    aemlib_status_t status = aemlib_transport_read(broker_transport, buf + buf_len, sizeof(buf) - buf_len, &read);
+    if (status != AEMLIB_STATUS_OK && AEMLIB_STATUS_CODE(status) != AEMLIB_CODE_WOULD_BLOCK) {
+        return;
+    }
+    buf_len += read;
+
+    for (;;) {
+        if (buf_len == 0) {
+            return;
+        }
+
+        aemlib_mqtt_fixed_header_t header;
+        status = aemlib_proto_decode_fixed_header(buf, buf_len, &header);
+        if (status != AEMLIB_STATUS_OK) {
+            return; /* incomplete header or malformed; wait for more or give up */
+        }
+
+        size_t packet_len = header.header_size + header.remaining_length;
+        if (packet_len > buf_len) {
+            return; /* full packet not buffered yet */
+        }
+
+        broker_process_packet(broker_transport, buf, &header, packet_len);
+
+        buf_len -= packet_len;
+        if (buf_len > 0) {
+            memmove(buf, buf + packet_len, buf_len);
+        }
     }
 }
 
@@ -165,7 +196,6 @@ int main(void)
 
     int subscribed = 0;
     int published = 0;
-    int subscribe_tick = -1;
 
     for (int tick = 0; tick < 20 && !received; tick++) {
         status = aemlib_poll(&client);
@@ -179,14 +209,10 @@ int main(void)
         if (client.state == AEMLIB_STATE_MQTT_CONNECTED && !subscribed) {
             aemlib_subscribe(&client, DEMO_TOPIC, 0);
             subscribed = 1;
-            subscribe_tick = tick;
             printf("[client] subscribed to '%s'\n", DEMO_TOPIC);
         }
 
-        /* Wait a tick past the SUBSCRIBE so broker_tick drains it before the
-         * PUBLISH lands in the same channel - neither side reassembles more
-         * than one packet per read yet (Implementation Plan item 5). */
-        if (subscribed && !published && tick > subscribe_tick) {
+        if (subscribed && !published) {
             aemlib_publish(&client, DEMO_TOPIC, (const uint8_t *)DEMO_PAYLOAD, strlen(DEMO_PAYLOAD), 0);
             published = 1;
             printf("[client] published '%s' to '%s'\n", DEMO_PAYLOAD, DEMO_TOPIC);
