@@ -3,8 +3,12 @@
 #include "aemlib/log.h"
 #include "aemlib/status.h"
 #include "aemlib/config.h"
+#include "proto.h"
 
 // DEFINITIONS ------------------------
+
+/* Time allowed waiting for CONNACK after the transport connects */
+#define AEMLIB_CORE_CONNACK_TIMEOUT_MS 5000
 
 /* Internal helper: validate config */
 static aemlib_status_t validate_config(const aemlib_core_config_t *cfg) {
@@ -149,12 +153,12 @@ static aemlib_status_t handle_state_connecting(aemlib_client_t *client)
 {
     AEMLIB_LOG_DEBUG(AEMLIB_LOG_MODULE_CORE, "Connecting...");
 
-    size_t out = 0;
     aemlib_status_t status = aemlib_transport_connect(&client->transport);
 
     if (status == AEMLIB_STATUS_OK) {
         AEMLIB_LOG_INFO(AEMLIB_LOG_MODULE_CORE, "transport connected");
         client->state = AEMLIB_STATE_MQTT_CONNECT_SENT;
+        client->last_activity_ms = aemlib_time_now(&client->time);
         return AEMLIB_STATUS_OK;
     }
 
@@ -169,12 +173,56 @@ static aemlib_status_t handle_state_connecting(aemlib_client_t *client)
 
 static aemlib_status_t handle_state_mqtt_connect_sent(aemlib_client_t *client)
 {
-    /* TODO: read CONNACK */
     AEMLIB_LOG_DEBUG(AEMLIB_LOG_MODULE_CORE, "waiting for CONNACK");
 
-    /* Placeholder: assume success for now */
-    client->state = AEMLIB_STATE_MQTT_CONNECTED;
-    AEMLIB_LOG_INFO(AEMLIB_LOG_MODULE_CORE, "MQTT connected");
+    size_t read = 0;
+    aemlib_status_t status = aemlib_transport_read(&client->transport,
+                                                   client->rx_buffer,
+                                                   client->rx_buffer_size,
+                                                   &read);
+
+    if (status != AEMLIB_STATUS_OK && AEMLIB_STATUS_CODE(status) != AEMLIB_CODE_WOULD_BLOCK) {
+        AEMLIB_LOG_ERROR(AEMLIB_LOG_MODULE_CORE, "transport read failed while waiting for CONNACK");
+        aemlib_transport_disconnect(&client->transport);
+        client->state = AEMLIB_STATE_DISCONNECTED;
+        return status;
+    }
+
+    if (read > 0) {
+        aemlib_mqtt_fixed_header_t header;
+        status = aemlib_proto_decode_fixed_header(client->rx_buffer, read, &header);
+
+        if (status == AEMLIB_STATUS_OK && header.type == AEMLIB_MQTT_PKT_CONNACK) {
+            uint8_t session_present = 0;
+            uint8_t return_code = 0;
+            status = aemlib_proto_decode_connack(client->rx_buffer, read, &session_present, &return_code);
+
+            if (status == AEMLIB_STATUS_OK && return_code == 0) {
+                client->state = AEMLIB_STATE_MQTT_CONNECTED;
+                client->last_activity_ms = aemlib_time_now(&client->time);
+                AEMLIB_LOG_INFO(AEMLIB_LOG_MODULE_CORE, "MQTT connected");
+                return AEMLIB_STATUS_OK;
+            }
+
+            AEMLIB_LOG_ERROR(AEMLIB_LOG_MODULE_CORE, "CONNACK rejected connection");
+            aemlib_transport_disconnect(&client->transport);
+            client->state = AEMLIB_STATE_DISCONNECTED;
+            return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_CONNECT);
+        }
+
+        AEMLIB_LOG_ERROR(AEMLIB_LOG_MODULE_CORE, "unexpected packet while waiting for CONNACK");
+        aemlib_transport_disconnect(&client->transport);
+        client->state = AEMLIB_STATE_DISCONNECTED;
+        return AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_PROTOCOL);
+    }
+
+    uint64_t now = aemlib_time_now(&client->time);
+    if (now - client->last_activity_ms >= AEMLIB_CORE_CONNACK_TIMEOUT_MS) {
+        AEMLIB_LOG_ERROR(AEMLIB_LOG_MODULE_CORE, "timed out waiting for CONNACK");
+        aemlib_transport_disconnect(&client->transport);
+        client->state = AEMLIB_STATE_DISCONNECTED;
+        return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_TIMEOUT);
+    }
 
     return AEMLIB_STATUS_OK;
 }

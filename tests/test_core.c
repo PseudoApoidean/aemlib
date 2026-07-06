@@ -17,6 +17,31 @@ static aemlib_status_t mock_transport_read(void *ctx, uint8_t *buf, size_t len, 
     return AEMLIB_STATUS_OK;
 }
 
+/* Canned CONNACK, accepted (session_present=0, return_code=0) */
+static aemlib_status_t mock_transport_read_connack_accepted(void *ctx, uint8_t *buf, size_t len, size_t *out_len) {
+    static const uint8_t connack[] = {0x20, 0x02, 0x00, 0x00};
+    size_t n = sizeof(connack) < len ? sizeof(connack) : len;
+    memcpy(buf, connack, n);
+    *out_len = n;
+    return AEMLIB_STATUS_OK;
+}
+
+/* Canned CONNACK, rejected (return_code=5, "not authorized") */
+static aemlib_status_t mock_transport_read_connack_rejected(void *ctx, uint8_t *buf, size_t len, size_t *out_len) {
+    static const uint8_t connack[] = {0x20, 0x02, 0x00, 0x05};
+    size_t n = sizeof(connack) < len ? sizeof(connack) : len;
+    memcpy(buf, connack, n);
+    *out_len = n;
+    return AEMLIB_STATUS_OK;
+}
+
+/* Fake clock that a test can advance to exercise timeouts */
+static uint64_t g_fake_time_ms;
+
+static uint64_t mock_time_now_advancing(void *ctx) {
+    return g_fake_time_ms;
+}
+
 static aemlib_status_t mock_transport_write(void *ctx, const uint8_t *buf, size_t len, size_t *out_len) {
     *out_len = len;
     return AEMLIB_STATUS_OK;
@@ -274,12 +299,15 @@ void test_aemlib_core_poll_invalid_state(void) {
 }
 
 void test_aemlib_core_state_machine_connect_flow(void) {
+    uint8_t rx_buf[16];
     aemlib_client_t client = {
         .state = AEMLIB_STATE_DISCONNECTED,
+        .rx_buffer = rx_buf,
+        .rx_buffer_size = sizeof(rx_buf),
         .transport = {
             .connect = mock_transport_connect,
             .disconnect = mock_transport_disconnect,
-            .read = mock_transport_read,
+            .read = mock_transport_read_connack_accepted,
             .write = mock_transport_write,
             .ctx = NULL
         },
@@ -299,7 +327,7 @@ void test_aemlib_core_state_machine_connect_flow(void) {
     TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
     TEST_ASSERT_EQUAL(AEMLIB_STATE_MQTT_CONNECT_SENT, client.state);
 
-    // Poll while waiting for CONNACK (placeholder implementation moves to connected)
+    // Poll while waiting for CONNACK (broker accepts the connection)
     status = aemlib_core_poll(&client);
     TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
     TEST_ASSERT_EQUAL(AEMLIB_STATE_MQTT_CONNECTED, client.state);
@@ -312,5 +340,61 @@ void test_aemlib_core_state_machine_connect_flow(void) {
     // Poll while disconnecting
     status = aemlib_core_poll(&client);
     TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(AEMLIB_STATE_DISCONNECTED, client.state);
+}
+
+void test_aemlib_core_connect_sent_connack_rejected(void) {
+    uint8_t rx_buf[16];
+    aemlib_client_t client = {
+        .state = AEMLIB_STATE_MQTT_CONNECT_SENT,
+        .last_activity_ms = 1000,
+        .rx_buffer = rx_buf,
+        .rx_buffer_size = sizeof(rx_buf),
+        .transport = {
+            .connect = mock_transport_connect,
+            .disconnect = mock_transport_disconnect,
+            .read = mock_transport_read_connack_rejected,
+            .write = mock_transport_write,
+            .ctx = NULL
+        },
+        .time = {
+            .now_ms = mock_time_now,
+            .ctx = NULL
+        }
+    };
+
+    aemlib_status_t status = aemlib_core_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_PROTOCOL, AEMLIB_CODE_CONNECT), status);
+    TEST_ASSERT_EQUAL(AEMLIB_STATE_DISCONNECTED, client.state);
+}
+
+void test_aemlib_core_connect_sent_connack_timeout(void) {
+    g_fake_time_ms = 1000;
+
+    aemlib_client_t client = {
+        .state = AEMLIB_STATE_MQTT_CONNECT_SENT,
+        .last_activity_ms = 1000,
+        .transport = {
+            .connect = mock_transport_connect,
+            .disconnect = mock_transport_disconnect,
+            .read = mock_transport_read, // no data available
+            .write = mock_transport_write,
+            .ctx = NULL
+        },
+        .time = {
+            .now_ms = mock_time_now_advancing,
+            .ctx = NULL
+        }
+    };
+
+    // Still within the CONNACK timeout window
+    aemlib_status_t status = aemlib_core_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(AEMLIB_STATE_MQTT_CONNECT_SENT, client.state);
+
+    // Past the CONNACK timeout window (matches AEMLIB_CORE_CONNACK_TIMEOUT_MS in core.c)
+    g_fake_time_ms = 1000 + 5000;
+    status = aemlib_core_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_TIMEOUT), status);
     TEST_ASSERT_EQUAL(AEMLIB_STATE_DISCONNECTED, client.state);
 }

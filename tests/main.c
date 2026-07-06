@@ -27,6 +27,8 @@ int main(void) {
     RUN_TEST(test_aemlib_core_disconnect_invalid_transitions);
     RUN_TEST(test_aemlib_core_poll_invalid_state);
     RUN_TEST(test_aemlib_core_state_machine_connect_flow);
+    RUN_TEST(test_aemlib_core_connect_sent_connack_rejected);
+    RUN_TEST(test_aemlib_core_connect_sent_connack_timeout);
 
     // Proto tests
     RUN_TEST(test_aemlib_proto_encode_remaining_length_zero);
