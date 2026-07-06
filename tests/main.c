@@ -6,6 +6,29 @@
 #include "test_proto.c"
 #include "test_virtual_transport.c"
 
+/* Every test_*.c file above lands in this one translation unit, so this is
+ * the one place that can see (and reset) every file's mock/fixture globals
+ * between tests - without this, a test that forgets to reset one of its own
+ * globals would silently inherit whatever the previous test left behind. */
+void setUp(void) {
+    g_fake_time_ms = 0;
+    g_connack_plus_extra_len = 0;
+
+    g_write_count = 0;
+    g_written_total = 0;
+
+    g_message_count = 0;
+    g_last_topic[0] = '\0';
+    g_last_payload[0] = '\0';
+
+    g_read_buf_len = 0;
+    g_read_buf_offset = 0;
+    g_read_chunk_size = 0;
+}
+
+void tearDown(void) {
+}
+
 int main(void) {
     UNITY_BEGIN();
 

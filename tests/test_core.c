@@ -78,14 +78,9 @@ static aemlib_status_t mock_storage_delete(void *ctx) {
     return AEMLIB_STATUS_OK;
 }
 
-// Test setup
-void setUp(void) {
-    // Set up test fixtures
-}
-
-void tearDown(void) {
-    // Clean up test fixtures
-}
+// setUp()/tearDown() live in main.c: every test_*.c file lands in one
+// translation unit there, so that's the one place that can see (and reset)
+// every file's mock globals.
 
 // Test aemlib_core_init
 void test_aemlib_core_init_null_client(void) {
