@@ -264,9 +264,11 @@ static aemlib_status_t handle_state_mqtt_connect_sent(aemlib_client_t *client)
     return AEMLIB_STATUS_OK;
 }
 
+/* Empty by design: the connected state's I/O lives in client.c. Kept so every
+ * state has a handler, and for future core-layer work. */
 static aemlib_status_t handle_state_mqtt_connected(aemlib_client_t *client)
 {
-    /* TODO: handle PUBLISH, PINGRESP, keepalive, etc. */
+    (void)client;
     return AEMLIB_STATUS_OK;
 }
 
@@ -302,7 +304,7 @@ static aemlib_status_t apply_config(aemlib_client_t *client, const aemlib_core_c
 
 static aemlib_status_t handle_state_mqtt_disconnecting(aemlib_client_t *client)
 {
-    /* TODO: send DISCONNECT packet */
+    /* TODO: send DISCONNECT before dropping the transport */
     AEMLIB_LOG_INFO(AEMLIB_LOG_MODULE_CORE, "MQTT disconnected");
 
     aemlib_transport_disconnect(&client->transport);
