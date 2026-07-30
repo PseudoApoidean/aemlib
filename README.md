@@ -8,8 +8,22 @@ A small MQTT 3.1.1 client written in C99 for embedded/bare-metal targets, with n
 
 - **Handle-centric, no hidden state.** `aemlib_client_t` is a plain, non-opaque struct the caller owns and can allocate statically.
 - **No dynamic allocation.** The caller provides all buffers (TX/RX) up front; the library only ever references them.
-- **Cooperative polling.** Nothing happens except inside `aemlib_poll()`. Safe to call from either a bare-metal loop or an RTOS task on a timer tick.
-- **Pluggable everything.** Transport, time, and storage are plain structs of function pointers plus a `void *ctx`. Swap in a real socket, a virtual/loopback transport, or a fake for tests without touching the client.
+- **Cooperative polling.** Nothing happens except inside `aemlib_poll()`. Safe to call from a bare-metal loop or an RTOS task on a timer tick.
+- **Pluggable everything.** Transport, time, and storage are plain structs of function pointers plus a `void *ctx` — swap in a real socket, a virtual/loopback transport, or a fake for tests without touching the client.
+
+## Status
+
+MQTT 3.1.1, QoS 0 only, for now. Working:
+
+- Connect handshake with real CONNACK wait + timeout
+- Publish / subscribe (QoS 0)
+- Inbound PUBLISH delivered via an `on_message` callback
+- Keepalive (PINGREQ)
+- Clean disconnect
+
+**Planned features**
+- QoS 1 (packet IDs, retries, PUBACK) 
+- Offline/persistent queue are not implemented yet (the interface for it is defined and reserved however).
 
 ## Building
 

@@ -24,7 +24,10 @@ static aemlib_status_t validate_config(const aemlib_core_config_t *cfg) {
         return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_INVALID_ARG);
     }
 
-    /* Validate transport/time/storage interfaces */
+    /* Transport and time only. Storage is a reserved seam - nothing in the
+     * library reads it yet, so aemlib_storage_validate() is deliberately not
+     * called here and a zero-initialised storage struct stays legal. It gets
+     * validated when the offline queue starts using it. */
     if (aemlib_transport_validate(&cfg->transport) != AEMLIB_STATUS_OK) {
         return AEMLIB_STATUS(AEMLIB_LAYER_GENERAL, AEMLIB_CODE_INVALID_ARG);
     }
