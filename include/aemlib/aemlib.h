@@ -82,7 +82,7 @@ typedef struct aemlib_client {
     uint64_t last_activity_ms;
     uint64_t keepalive_interval_ms;
 
-    /* MQTT packet ID counter (for QoS1) */
+    /* MQTT packet ID counter. Only SUBSCRIBE draws from it currently. */
     uint16_t packet_id;
 
     /* Set once the CONNECT packet has been sent for the current connection
@@ -137,7 +137,17 @@ aemlib_status_t aemlib_poll(aemlib_client_t *client);
 aemlib_status_t aemlib_connect(aemlib_client_t *client);
 aemlib_status_t aemlib_disconnect(aemlib_client_t *client);
 
-/* Publish / subscribe (MQTT 3.1.1, QoS 0/1) */
+/* Publish / subscribe (MQTT 3.1.1, QoS 0 only).
+ *
+ * Both return AEMLIB_CODE_UNSUPPORTED for any qos other than 0, and an
+ * inbound PUBLISH above QoS 0 is rejected rather than delivered - there is
+ * no PUBACK support in either direction. The `qos` parameter is accepted
+ * now so adding QoS 1 later is not a breaking API change.
+ *
+ * QoS 2 is out of scope: its four-packet exchange needs per-message state
+ * held across reconnects, and on constrained devices at-least-once with
+ * idempotent handling is the normal answer.
+ */
 aemlib_status_t aemlib_publish(aemlib_client_t *client,
                                const char *topic,
                                const uint8_t *payload,
