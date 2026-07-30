@@ -26,9 +26,14 @@ set_target_properties(aemlib PROPERTIES
 # because the tests link Unity, which is not pedantic-clean.
 target_compile_options(aemlib PRIVATE -pedantic-errors)
 
+# include/ is the public API. core/, proto/ and platform/ are PRIVATE so a
+# consumer cannot include them and pin an interface that is meant to move.
+# Internal consumers (tests, and the fake broker in pubsub_demo) ask for these
+# directories explicitly on their own targets.
 target_include_directories(aemlib
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/core
         ${CMAKE_CURRENT_SOURCE_DIR}/proto
         ${CMAKE_CURRENT_SOURCE_DIR}/platform
