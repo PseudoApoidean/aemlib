@@ -16,6 +16,7 @@ void setUp(void) {
 
     g_write_count = 0;
     g_written_total = 0;
+    g_client_fake_time_ms = 0;
 
     g_message_count = 0;
     g_last_topic[0] = '\0';
@@ -61,6 +62,7 @@ int main(void) {
     RUN_TEST(test_aemlib_poll_retries_partial_write_without_data_loss);
     RUN_TEST(test_aemlib_poll_processes_multiple_packets_from_one_read);
     RUN_TEST(test_aemlib_poll_reassembles_packet_split_across_reads);
+    RUN_TEST(test_aemlib_poll_sends_pingreq_once_the_keepalive_interval_elapses);
 
     // Proto tests
     RUN_TEST(test_aemlib_proto_encode_remaining_length_zero);

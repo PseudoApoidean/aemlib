@@ -41,8 +41,29 @@ static aemlib_status_t client_mock_transport_write_counting(void *ctx, const uin
     return AEMLIB_STATUS_OK;
 }
 
+/* Accepts the whole write, keeping every byte, so a test can decode what was
+ * actually put on the wire rather than just counting calls. */
+static aemlib_status_t client_mock_transport_write_capturing(void *ctx, const uint8_t *buf, size_t len, size_t *out_len) {
+    size_t n = len;
+    if (n > sizeof(g_written_bytes) - g_written_total) {
+        n = sizeof(g_written_bytes) - g_written_total;
+    }
+    memcpy(g_written_bytes + g_written_total, buf, n);
+    g_written_total += n;
+    *out_len = len;
+    return AEMLIB_STATUS_OK;
+}
+
 static uint64_t client_mock_time_now(void *ctx) {
     return 1000; // frozen clock: never trips the CONNACK timeout
+}
+
+/* Clock a test can wind forward. Separate from test_core.c's g_fake_time_ms
+ * because these files share one translation unit. */
+static uint64_t g_client_fake_time_ms;
+
+static uint64_t client_mock_time_now_advancing(void *ctx) {
+    return g_client_fake_time_ms;
 }
 
 static int  g_message_count = 0;
@@ -285,4 +306,70 @@ void test_aemlib_poll_reassembles_packet_split_across_reads(void) {
     TEST_ASSERT_EQUAL_STRING("t", g_last_topic);
     TEST_ASSERT_EQUAL_STRING("hello", g_last_payload);
     TEST_ASSERT_EQUAL(0, client.rx_len);
+}
+
+void test_aemlib_poll_sends_pingreq_once_the_keepalive_interval_elapses(void) {
+    g_written_total = 0;
+    g_client_fake_time_ms = 1000;
+
+    uint8_t tx_buf[64];
+    uint8_t rx_buf[64];
+    aemlib_client_t client;
+    aemlib_config_t config = {
+        .tx_buffer = tx_buf,
+        .tx_buffer_size = sizeof(tx_buf),
+        .rx_buffer = rx_buf,
+        .rx_buffer_size = sizeof(rx_buf),
+        .transport = {
+            .connect = client_mock_transport_connect,
+            .disconnect = client_mock_transport_disconnect,
+            .read = client_mock_transport_read_no_data,
+            .write = client_mock_transport_write_capturing,
+            .ctx = NULL
+        },
+        .time = {
+            .now_ms = client_mock_time_now_advancing,
+            .ctx = NULL
+        },
+        .keepalive_interval_ms = 60000
+    };
+
+    aemlib_status_t status = aemlib_init(&client, &config);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    client.state = AEMLIB_STATE_MQTT_CONNECTED;
+    client.last_activity_ms = 1000;
+
+    // Nothing goes out while the connection is inside its keepalive window,
+    // however many times the caller polls.
+    for (int i = 0; i < 5; i++) {
+        status = aemlib_poll(&client);
+        TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    }
+    TEST_ASSERT_EQUAL(0, g_written_total);
+
+    // One millisecond short of the interval is still inside it.
+    g_client_fake_time_ms = 1000 + 60000 - 1;
+    status = aemlib_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(0, g_written_total);
+
+    // On the interval, a PINGREQ is written.
+    g_client_fake_time_ms = 1000 + 60000;
+    status = aemlib_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+
+    aemlib_mqtt_fixed_header_t header;
+    status = aemlib_proto_decode_fixed_header(g_written_bytes, g_written_total, &header);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(AEMLIB_MQTT_PKT_PINGREQ, header.type);
+    TEST_ASSERT_EQUAL(AEMLIB_MQTT_PINGREQ_LENGTH, g_written_total);
+
+    // The window restarts from the ping, so the next one is an interval away
+    // and not on every poll from here on.
+    TEST_ASSERT_EQUAL(g_client_fake_time_ms, client.last_activity_ms);
+
+    g_written_total = 0;
+    status = aemlib_poll(&client);
+    TEST_ASSERT_EQUAL(AEMLIB_STATUS_OK, status);
+    TEST_ASSERT_EQUAL(0, g_written_total);
 }
