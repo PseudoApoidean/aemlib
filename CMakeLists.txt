@@ -15,6 +15,17 @@ add_library(aemlib
     platform/virtual_transport.c
 )
 
+set_target_properties(aemlib PROPERTIES
+    C_STANDARD 99
+    C_STANDARD_REQUIRED ON
+    C_EXTENSIONS OFF
+)
+
+# The properties above only select -std=c99; GCC still accepts most GNU
+# extensions in that mode. -pedantic-errors is what rejects them. PRIVATE
+# because the tests link Unity, which is not pedantic-clean.
+target_compile_options(aemlib PRIVATE -pedantic-errors)
+
 target_include_directories(aemlib
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
