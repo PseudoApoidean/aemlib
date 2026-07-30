@@ -55,24 +55,24 @@ void aemlib_log_emit_prefixed(aemlib_log_level_t level,
 // IMPLEMENTATION MACROS --------------
 
 #if AEMLIB_LOG_LEVEL >= AEMLIB_LOG_ERROR
-#define AEMLIB_LOG_ERROR(module, fmt, ...) \
-    aemlib_log_emit(AEMLIB_LOG_ERROR, module, fmt, ##__VA_ARGS__)
+#define AEMLIB_LOG_ERROR(module, ...) \
+    aemlib_log_emit(AEMLIB_LOG_ERROR, module, __VA_ARGS__)
 #else
-#define AEMLIB_LOG_ERROR(module, fmt, ...) ((void)0)
+#define AEMLIB_LOG_ERROR(module, ...) ((void)0)
 #endif
 
 #if AEMLIB_LOG_LEVEL >= AEMLIB_LOG_INFO
-#define AEMLIB_LOG_INFO(module, fmt, ...) \
-    aemlib_log_emit(AEMLIB_LOG_INFO, module, fmt, ##__VA_ARGS__)
+#define AEMLIB_LOG_INFO(module, ...) \
+    aemlib_log_emit(AEMLIB_LOG_INFO, module, __VA_ARGS__)
 #else
-#define AEMLIB_LOG_INFO(module, fmt, ...) ((void)0)
+#define AEMLIB_LOG_INFO(module, ...) ((void)0)
 #endif
 
 #if AEMLIB_LOG_LEVEL >= AEMLIB_LOG_DEBUG
-#define AEMLIB_LOG_DEBUG(module, fmt, ...) \
-    aemlib_log_emit(AEMLIB_LOG_DEBUG, module, fmt, ##__VA_ARGS__)
+#define AEMLIB_LOG_DEBUG(module, ...) \
+    aemlib_log_emit(AEMLIB_LOG_DEBUG, module, __VA_ARGS__)
 #else
-#define AEMLIB_LOG_DEBUG(module, fmt, ...) ((void)0)
+#define AEMLIB_LOG_DEBUG(module, ...) ((void)0)
 #endif
 
 #ifdef __cplusplus
