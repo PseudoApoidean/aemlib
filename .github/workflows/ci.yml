@@ -24,3 +24,6 @@ jobs:
 
       - name: Test
         run: ctest --preset dev --output-on-failure
+
+      - name: Verify the installed package
+        run: ./tests/package/verify.sh
