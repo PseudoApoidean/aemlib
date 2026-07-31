@@ -15,7 +15,11 @@ add_library(aemlib
     platform/virtual_transport.c
 )
 
+# The archive is libaem.a, not libaemlib.a: the lib prefix already supplies the
+# "lib" in AEMlib, the same way zlib ships as libz.a. Only the filename changes;
+# the target, package and header directory stay aemlib.
 set_target_properties(aemlib PROPERTIES
+    OUTPUT_NAME aem
     C_STANDARD 99
     C_STANDARD_REQUIRED ON
     C_EXTENSIONS OFF
