@@ -8,7 +8,7 @@ target_link_libraries(aemlib_smoke_test PRIVATE aemlib)
 # consumer can do. smoke_test and mqtt_broker_demo get no internal directories
 # on purpose - they only compile if the public API is sufficient on its own.
 add_executable(aemlib_pubsub_demo pubsub_demo.c)
-target_link_libraries(aemlib_pubsub_demo PRIVATE aemlib)
+target_link_libraries(aemlib_pubsub_demo PRIVATE aemlib aemlib_virtual_transport)
 target_include_directories(aemlib_pubsub_demo
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../proto

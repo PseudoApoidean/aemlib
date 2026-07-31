@@ -17,6 +17,7 @@ add_executable(aemlib_tests
 target_link_libraries(aemlib_tests
     PRIVATE
         aemlib
+        aemlib_virtual_transport
         unity
 )
 
