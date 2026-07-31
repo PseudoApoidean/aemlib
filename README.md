@@ -43,7 +43,24 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-Build options (both default `ON`): `AEMLIB_BUILD_TESTS`, `AEMLIB_BUILD_EXAMPLES`.
+Build options: `AEMLIB_BUILD_TESTS` and `AEMLIB_BUILD_EXAMPLES` (default `ON`), and `AEMLIB_INSTALL` (default `ON`, `OFF` under `add_subdirectory()`).
+
+## Installing and consuming
+
+```sh
+cmake -S . -B build -DAEMLIB_BUILD_TESTS=OFF -DAEMLIB_BUILD_EXAMPLES=OFF
+cmake --build build
+cmake --install build --prefix /your/prefix
+```
+
+That installs `libaem.a`, the public headers under `include/aemlib/`, and a CMake package. Consumers:
+
+```cmake
+find_package(aemlib REQUIRED)
+target_link_libraries(your_target PRIVATE aemlib::aemlib)
+```
+
+`aemlib::aemlib` is also defined by `add_subdirectory()`, so link lines are the same either way; install rules default off in that mode so AEMlib never writes into a parent project's prefix.
 
 ## Examples
 
